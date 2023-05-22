@@ -1,10 +1,10 @@
-name: Docker Image CI
+name: Docker CI
 
 on:
-#  push:
-#    branches: [ "master" ]
-  pull_request:
-    branches: [ "master" ]
+  workflow_run:
+      workflows: ["Java CI"]
+      types:
+        - completed
 
 jobs:
 
@@ -24,7 +24,7 @@ jobs:
     - name: Build and push (Front)
       uses: docker/build-push-action@v4
       with:
-        context: ./back
+        context: ./front
         file: ./Dockerfile
         push: true
         tags: ${{ secrets.DOCKERHUB_USERNAME }}/bobapp-front:latest
