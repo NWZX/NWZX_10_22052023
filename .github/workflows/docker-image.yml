@@ -23,14 +23,14 @@ jobs:
     - name: Build and push (Front)
       uses: docker/build-push-action@v4
       with:
-        context: .
+        context: ./front
         file: ./front/Dockerfile
         push: true
         tags: ${{ secrets.DOCKERHUB_USERNAME }}/bobapp-front:latest
     - name: Build and push (Back)
       uses: docker/build-push-action@v4
       with:
-        context: .
+        context: ./back
         file: ./back/Dockerfile
         push: true
         tags: ${{ secrets.DOCKERHUB_USERNAME }}/bobapp-back:latest
