@@ -96,7 +96,7 @@ jobs:
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN_BACK }}
         SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
       with:
-        scanMetadataReportFile: back/.scannerwork/report-task.txt
+        scanMetadataReportFile: /back/target/sonar/report-task.txt
     outputs:
       quality-gate-status-back: ${{ steps.sonarqube-quality-gate-check.outputs.quality-gate-status }}
   ci-quality:
