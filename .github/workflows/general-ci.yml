@@ -33,6 +33,15 @@ jobs:
         SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
       with:
         projectBaseDir: front
+    - uses: sonarsource/sonarqube-quality-gate-action@master
+      timeout-minutes: 5
+      env:
+        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN_FRONT }}
+        SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+      with:
+        scanMetadataReportFile: front/.scannerwork/report-task.txt
+    outputs:
+      quality-gate-status-front: ${{ steps.sonarqube-quality-gate-check.outputs.quality-gate-status }}
 
   ci-back:
     name: Java/Spring CI
@@ -69,8 +78,8 @@ jobs:
         key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
         restore-keys: ${{ runner.os }}-m2
 
-    #- name: Build with Maven
-    #  run: mvn clean install --file pom.xml
+    - name: Build with Maven
+      run: mvn clean install --file pom.xml
 
     - name: Launch Test with Maven
       run: mvn clean test
@@ -81,26 +90,18 @@ jobs:
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN_BACK }}
         SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
       run: mvn -B verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar -Dsonar.projectKey=NWZX_10_BACK -Dsonar.projectName='NWZX_10_BACK'
-
-  ci-quality:
-    name: Quality Gate
-    needs: [ci-front, ci-back]
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: 'front'
-
-    steps:
-    - uses: sonarsource/sonarqube-quality-gate-action@master
-      timeout-minutes: 5
-      env:
-        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN_FRONT }}
-        SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
     - uses: sonarsource/sonarqube-quality-gate-action@master
       timeout-minutes: 5
       env:
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN_BACK }}
         SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+    outputs:
+      quality-gate-status-back: ${{ steps.sonarqube-quality-gate-check.outputs.quality-gate-status }}
+  ci-quality:
+    name: Quality Gate
+    needs: [ci-front, ci-back]
+    runs-on: ubuntu-latest
+    if: ${{ needs.ci-front.outputs.quality-gate-status-front == 'PASSED' && needs.ci-back.outputs.quality-gate-status-back == 'PASSED' }}
 
   ci-docker:
     name: Docker Build/Publish
