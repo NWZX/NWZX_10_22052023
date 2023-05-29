@@ -10,6 +10,7 @@ on:
 
 jobs:
   ci-front:
+    name: Angular CI
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -23,22 +24,18 @@ jobs:
         node-version: '18.x'
         
     - run: npm ci
-    #- run: npm run build --if-present
-    #- run: npm test -- --watch=false --browsers=ChromeHeadless
+    - run: npm run build --if-present
+    - run: npm test -- --watch=false --browsers=ChromeHeadless
 
     - uses: sonarsource/sonarqube-scan-action@master
       env:
-        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN_FRONT }}
         SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
       with:
         projectBaseDir: front
-    - uses: sonarsource/sonarqube-quality-gate-action@master
-      timeout-minutes: 5
-      env:
-        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
   ci-back:
-    needs: [ci-front]
+    name: Java/Spring CI
     runs-on: ubuntu-latest
 
     defaults:
@@ -81,13 +78,33 @@ jobs:
     - name: Build and analyze
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Needed to get PR information, if any
-        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN_BACK }}
         SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
-      run: mvn -B verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar -Dsonar.projectKey=NWZX_NWZX_10_22052023_AYhnDo8ByfdG9QOlfVcd -Dsonar.projectName='NWZX_10_22052023'
+      run: mvn -B verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar -Dsonar.projectKey=NWZX_10_BACK -Dsonar.projectName='NWZX_10_BACK'
 
+  ci-quality:
+    name: Quality Gate
+    needs: [ci-front, ci-back]
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: 'front'
+
+    steps:
+    - uses: sonarsource/sonarqube-quality-gate-action@master
+      timeout-minutes: 5
+      env:
+        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN_FRONT }}
+        SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+    - uses: sonarsource/sonarqube-quality-gate-action@master
+      timeout-minutes: 5
+      env:
+        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN_BACK }}
+        SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
 
   ci-docker:
-    needs: [ci-front, ci-back]
+    name: Docker Build/Publish
+    needs: [ci-quality]
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
