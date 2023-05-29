@@ -105,6 +105,10 @@ jobs:
     runs-on: ubuntu-latest
     if: ${{ needs.ci-front.outputs.quality-gate-status-front == 'PASSED' && needs.ci-back.outputs.quality-gate-status-back == 'PASSED' }}
 
+    steps:
+      - name: Validate
+        run: echo "FRONT [${{ needs.ci-front.outputs.quality-gate-status-front == 'PASSED'}}] | BACK [${{ needs.ci-back.outputs.quality-gate-status-back == 'PASSED' }}]"
+
   ci-docker:
     name: Docker Build/Publish
     needs: [ci-quality]
