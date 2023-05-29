@@ -3,10 +3,6 @@ name: Workflows CI
 on:
   push:
       branches: [ "master" ]
-#  workflow_run:
-#      workflows: ["Java CI"]
-#      types:
-#        - completed
 
 jobs:
   ci-front:
@@ -22,18 +18,21 @@ jobs:
       uses: actions/setup-node@v3
       with:
         node-version: '18.x'
-        
-    - run: npm ci
-    - run: npm run build --if-present
-    - run: npm test -- --watch=false --browsers=ChromeHeadless
-
+    - name: Install packages    
+      run: npm ci
+    - name: Build package
+      run: npm run build --if-present
+    - name: Run Test
+      run: npm test -- --watch=false --browsers=ChromeHeadless
     - uses: sonarsource/sonarqube-scan-action@master
       env:
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN_FRONT }}
         SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
       with:
         projectBaseDir: front
-    - uses: sonarsource/sonarqube-quality-gate-action@master
+    - name: SonarQube Quality Gate check
+      id: sonarqube-quality-gate-check
+      uses: sonarsource/sonarqube-quality-gate-action@master
       timeout-minutes: 5
       env:
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN_FRONT }}
@@ -77,20 +76,19 @@ jobs:
         path: ~/.m2
         key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
         restore-keys: ${{ runner.os }}-m2
-
     - name: Build with Maven
       run: mvn clean install --file pom.xml
-
     - name: Launch Test with Maven
       run: mvn clean test
-
     - name: Build and analyze
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Needed to get PR information, if any
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN_BACK }}
         SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
       run: mvn -B verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar -Dsonar.projectKey=NWZX_10_BACK -Dsonar.projectName='NWZX_10_BACK'
-    - uses: sonarsource/sonarqube-quality-gate-action@master
+    - name: SonarQube Quality Gate check
+      id: sonarqube-quality-gate-check
+      uses: sonarsource/sonarqube-quality-gate-action@master
       timeout-minutes: 5
       env:
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN_BACK }}
@@ -103,11 +101,10 @@ jobs:
     name: Quality Gate
     needs: [ci-front, ci-back]
     runs-on: ubuntu-latest
-    if: needs.ci-front.outputs.quality-gate-status == 'PASSED' && needs.ci-back.outputs.quality-gate-status == 'PASSED'
-
+    if: ${{ needs.ci-front.outputs.quality-gate-status == 'PASSED' }} && ${{ needs.ci-back.outputs.quality-gate-status == 'PASSED' }}
     steps:
-      - name: Validate
-        run: echo "FRONT [${{ needs.ci-front.outputs.quality-gate-status-front == 'PASSED'}}] | BACK [${{ needs.ci-back.outputs.quality-gate-status-back == 'PASSED' }}]"
+      - name: Show Result
+        run: echo "FRONT [${{ needs.ci-front.outputs.quality-gate-status == 'PASSED'}}] | BACK [${{ needs.ci-back.outputs.quality-gate-status == 'PASSED' }}]"
 
   ci-docker:
     name: Docker Build/Publish
