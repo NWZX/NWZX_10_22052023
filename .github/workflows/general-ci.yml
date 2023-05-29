@@ -41,7 +41,7 @@ jobs:
       with:
         scanMetadataReportFile: front/.scannerwork/report-task.txt
     outputs:
-      quality-gate-status-front: ${{ steps.sonarqube-quality-gate-check.outputs.quality-gate-status }}
+      quality-gate-status: ${{ steps.sonarqube-quality-gate-check.outputs.quality-gate-status }}
 
   ci-back:
     name: Java/Spring CI
@@ -98,12 +98,12 @@ jobs:
       with:
         scanMetadataReportFile: back/target/sonar/report-task.txt
     outputs:
-      quality-gate-status-back: ${{ steps.sonarqube-quality-gate-check.outputs.quality-gate-status }}
+      quality-gate-status: ${{ steps.sonarqube-quality-gate-check.outputs.quality-gate-status }}
   ci-quality:
     name: Quality Gate
     needs: [ci-front, ci-back]
     runs-on: ubuntu-latest
-    if: ${{ needs.ci-front.outputs.quality-gate-status-front == 'PASSED' && needs.ci-back.outputs.quality-gate-status-back == 'PASSED' }}
+    if: needs.ci-front.outputs.quality-gate-status == 'PASSED' && needs.ci-back.outputs.quality-gate-status == 'PASSED'
 
     steps:
       - name: Validate
